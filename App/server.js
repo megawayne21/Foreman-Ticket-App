@@ -101,15 +101,18 @@ function buildBillingLineItems(records, pricingMap) {
       const raw = (row[col] || '').trim();
       if (!raw) continue;
 
+      const dateCompleted = (row['Date Completed'] || '').trim().slice(0, 7);
+
       if (col === 'Shipping Costs') {
         const val = parseFloat(raw.replace(/[$,]/g, ''));
         if (!isNaN(val) && val > 0) {
           const key = `${client}||Shipping Costs||Shipping`;
           if (!aggregated[key]) {
-            aggregated[key] = { Client: client, Code_Type: col, Code: 'Shipping', Item_Name: 'Shipping', Unit_Price: val, Qty: 0, totalShipping: 0 };
+            aggregated[key] = { Client: client, Code_Type: col, Code: 'Shipping', Item_Name: 'Shipping', Unit_Price: val, Qty: 0, totalShipping: 0, months: new Set() };
           }
           aggregated[key].Qty += 1;
           aggregated[key].totalShipping += val;
+          if (dateCompleted) aggregated[key].months.add(dateCompleted);
         }
         continue;
       }
@@ -125,19 +128,22 @@ function buildBillingLineItems(records, pricingMap) {
             Code: code,
             Item_Name: entry ? entry.name : '',
             Unit_Price: entry ? entry.price : null,
-            Qty: 0
+            Qty: 0,
+            months: new Set()
           };
         }
         aggregated[key].Qty += 1;
+        if (dateCompleted) aggregated[key].months.add(dateCompleted);
       }
     }
   }
 
   return Object.values(aggregated).map(item => {
+    const monthStr = [...item.months].sort().join(', ');
     if (item.Code === 'Shipping') {
       return {
         Client: item.Client,
-        Code_Type: item.Code_Type,
+        Month_Completed: monthStr,
         Code: item.Code,
         Item_Name: item.Item_Name,
         Qty: item.Qty,
@@ -149,7 +155,7 @@ function buildBillingLineItems(records, pricingMap) {
     const lineTotal = item.Unit_Price !== null ? `$${(item.Unit_Price * item.Qty).toFixed(2)}` : 'missing code/price';
     return {
       Client: item.Client,
-      Code_Type: item.Code_Type,
+      Month_Completed: monthStr,
       Code: item.Code,
       Item_Name: item.Item_Name,
       Qty: item.Qty,
@@ -160,7 +166,7 @@ function buildBillingLineItems(records, pricingMap) {
     if (item.Unit_Price === 'missing code/price') return true;
     const price = parseFloat(String(item.Unit_Price).replace(/[$,]/g, ''));
     return !isNaN(price) && price > 0;
-  }).sort((a, b) => a.Client.localeCompare(b.Client) || a.Code_Type.localeCompare(b.Code_Type) || a.Code.localeCompare(b.Code));
+  }).sort((a, b) => a.Client.localeCompare(b.Client) || a.Code.localeCompare(b.Code));
 }
 
 app.post('/api/billing-compute', (req, res) => {
@@ -182,7 +188,7 @@ app.post('/api/export-billing', (req, res) => {
   try {
     const pricingMap = loadPricingMap();
     const lines = buildBillingLineItems(rows, pricingMap);
-    const outCols = ['Client', 'Code_Type', 'Code', 'Item_Name', 'Qty', 'Unit_Price', 'Line_Total'];
+    const outCols = ['Client', 'Month_Completed', 'Code', 'Item_Name', 'Qty', 'Unit_Price', 'Line_Total'];
     const csv = stringify(lines, { header: true, columns: outCols });
     const outName = exportName || `billing_export_${new Date().toISOString().slice(0, 10)}.csv`;
     const outPath = path.join(EXPORT_DIR, outName);

@@ -21,7 +21,7 @@ function getFilteredRows() {
   const checkedStatuses = Array.from(document.querySelectorAll('#statusChecks input:checked')).map(cb => cb.value);
 
   return allRows.filter(row => {
-    if (selectedFiles.size > 0 && !selectedFiles.has(row._source)) return false;
+    if (selectedFiles.size === 0 || !selectedFiles.has(row._source)) return false;
     if (dateFrom || dateTo) {
       const dc = (row['Date Completed'] || '').trim().slice(0, 10);
       if (!dc) return false;
@@ -76,10 +76,12 @@ async function loadAllData() {
   });
 
   const today = new Date();
-  const monthAgo = new Date(today);
-  monthAgo.setMonth(monthAgo.getMonth() - 1);
-  document.getElementById('filterDateFrom').value = monthAgo.toISOString().slice(0, 10);
-  document.getElementById('filterDateTo').value = today.toISOString().slice(0, 10);
+  const firstOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+  const pad = (n) => String(n).padStart(2, '0');
+  const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  document.getElementById('filterDateFrom').value = fmtDate(firstOfPrevMonth);
+  document.getElementById('filterDateTo').value = fmtDate(lastOfPrevMonth);
 
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('fileView').style.display = 'block';
@@ -206,8 +208,8 @@ function renderBilling() {
     <div class="summary-card"><div class="label">Pricing Codes Loaded</div><div class="value">${billingData?.pricingCodes || 0}</div></div>
   `;
 
-  const billingCols = ['Client', 'Code_Type', 'Code', 'Item_Name', 'Qty', 'Unit_Price', 'Line_Total'];
-  const billingLabels = ['Client', 'Code Type', 'Code', 'Item Name', 'Qty', 'Unit Price', 'Line Total'];
+  const billingCols = ['Client', 'Month_Completed', 'Code', 'Item_Name', 'Qty', 'Line_Total'];
+  const billingLabels = ['Client', 'Month Completed', 'Code', 'Item Name', 'Qty', 'Line Total'];
   const thead = document.getElementById('billingHead');
   const tbody = document.getElementById('billingBody');
 
@@ -430,7 +432,7 @@ function openExportModal(mode) {
   document.getElementById('exportFilename').value = `tickets_${prefix}_${today}.csv`;
 
   if (mode === 'billing') {
-    document.getElementById('modalColumns').textContent = 'Client, Code Type, Code, Item Name, Qty, Unit Price, Line Total';
+    document.getElementById('modalColumns').textContent = 'Client, Month Completed, Code, Item Name, Qty, Line Total';
   } else {
     document.getElementById('modalColumns').textContent = [...selectedColumns].join(', ');
   }
