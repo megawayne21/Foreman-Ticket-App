@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foreman Ticket — CSV Export Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c0c12;
+      --surface: #141419;
+      --surface-hover: #1a1a22;
+      --border: #252530;
+      --text: #e4e4eb;
+      --muted: #6e6e82;
+      --accent: #f5a623;
+      --accent-hover: #e0951b;
+      --accent-light: rgba(245, 166, 35, 0.1);
+      --success: #22c55e;
+      --success-light: rgba(34, 197, 94, 0.1);
+      --danger: #ef4444;
+      --sidebar-bg: #101016;
+      --sidebar-active: rgba(245, 166, 35, 0.12);
+      --radius: 8px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      color-scheme: dark;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      display: block;
+      height: 30px;
+      width: auto;
+      margin-bottom: 0.35rem;
+    }
+
+    .sidebar .subtitle {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      padding-left: 2px;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .file-list {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .file-item {
+      padding: 0.625rem 0.75rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .file-item:hover { background: var(--surface-hover); }
+    .file-item.active { background: var(--sidebar-active); color: var(--accent); }
+
+    .file-item .file-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    .file-item .file-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .file-item.active .file-meta { color: var(--accent); opacity: 0.7; }
+
+    .exports-section { margin-top: 1rem; }
+
+    .export-item {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--success);
+      background: var(--success-light);
+      border-radius: var(--radius);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .main {
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+    .empty-state h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text); }
+    .empty-state p { font-size: 0.9rem; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-right: auto;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: var(--surface-hover); }
+
+    .column-picker {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .picker-zone {
+      margin-bottom: 0.75rem;
+    }
+
+    .picker-zone:last-child { margin-bottom: 0; }
+
+    .picker-zone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .picker-zone-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .picker-zone-label .count {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+    }
+
+    .picker-divider {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 0.75rem 0;
+    }
+
+    .column-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .column-actions button {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--muted);
+      font-family: inherit;
+    }
+    .column-actions button:hover { color: var(--accent); border-color: var(--accent); }
+
+    .columns-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .col-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .col-tag:hover { border-color: var(--accent); }
+
+    .col-tag.selected {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .col-tag.available {
+      background: var(--bg);
+      border-style: dashed;
+    }
+
+    .col-tag.available:hover { border-color: var(--accent); border-style: solid; }
+
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: auto;
+      max-height: 60vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    thead { position: sticky; top: 0; z-index: 1; }
+
+    th {
+      background: var(--surface);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+    }
+
+    th.selected-col { color: var(--accent); background: var(--accent-light); }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+
+    th.sortable:hover { color: var(--accent); }
+
+    th.sortable .sort-hint {
+      opacity: 0.35;
+      font-size: 0.7em;
+    }
+
+    td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    td.selected-col { background: var(--accent-light); }
+
+    tr:hover td { background: var(--surface-hover); }
+    tr:hover td.selected-col { background: rgba(245, 166, 35, 0.08); }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--success);
+      color: white;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-md);
+      transform: translateY(120%);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .export-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .export-modal.open { display: flex; }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .modal-box h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .modal-box p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-box label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    .modal-box input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 1rem;
+    }
+
+    .modal-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .tab {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      color: var(--muted);
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .billing-summary {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1.25rem;
+    }
+
+    .summary-card .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    .summary-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    td.missing { color: var(--danger); font-weight: 500; }
+
+    td.editable {
+      cursor: text;
+      position: relative;
+    }
+
+    td.editable:hover { background: var(--accent-light); }
+
+    td.editable input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      border: none;
+      background: transparent;
+      width: 100%;
+      padding: 0;
+      color: var(--text);
+      outline: none;
+    }
+
+    td.editable input:focus {
+      background: var(--bg);
+      box-shadow: inset 0 0 0 2px var(--accent);
+      border-radius: 3px;
+      padding: 0 4px;
+      margin: 0 -4px;
+    }
+
+    .btn-delete-row {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+
+    .btn-delete-row:hover { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+
+    .drag-handle {
+      cursor: grab;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 0.2rem 0.35rem;
+      user-select: none;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+    }
+
+    .drag-handle:hover {
+      opacity: 1;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    tr.drag-over-above td {
+      box-shadow: inset 0 2px 0 var(--accent);
+    }
+
+    tr.drag-over-below td {
+      box-shadow: inset 0 -2px 0 var(--accent);
+    }
+
+    tr.dragging {
+      opacity: 0.4;
+    }
+
+    .pricing-dirty {
+      background: var(--accent);
+      color: white;
+    }
+
+    .col-tag.default {
+      background: rgba(34, 197, 94, 0.1);
+      color: #4ade80;
+      border-color: rgba(34, 197, 94, 0.3);
+      cursor: default;
+    }
+
+    .col-tag.default:hover { border-color: rgba(34, 197, 94, 0.3); }
+
+    .filter-group {
+      margin-bottom: 0.75rem;
+    }
+
+    .filter-group label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .filter-group input[type="date"] {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.35rem 0.5rem;
+      color: var(--text);
+      width: 100%;
+    }
+
+    .filter-group select {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.25rem;
+      color: var(--text);
+      width: 100%;
+    }
+
+    .filter-group select option { padding: 0.2rem 0.4rem; }
+
+    .checkbox-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: background 0.1s;
+    }
+
+    .checkbox-item:hover { background: var(--surface-hover); }
+
+    .checkbox-item input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .checkbox-item .cb-label {
+      flex: 1;
+      word-break: break-all;
+    }
+
+    .checkbox-item .cb-count {
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+
+    .debug-section {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .debug-item {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    .debug-item.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border-left: 3px solid var(--danger);
+    }
+
+    .debug-item.warn {
+      background: rgba(245, 158, 11, 0.1);
+      color: #fcd34d;
+      border-left: 3px solid #f59e0b;
+    }
+
+    .debug-item .debug-label {
+      font-weight: 600;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    .debug-count {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    th.row-num-header,
+    td.row-num {
+      color: var(--muted);
+      font-size: 0.7rem;
+      text-align: right;
+      user-select: none;
+      width: 2.5rem;
+      min-width: 2.5rem;
+      border-right: 2px solid var(--border);
+      background: var(--surface);
+    }
+
+    th.row-num-header {
+      font-size: 0.65rem;
+    }
+
+    tr:hover td.row-num {
+      background: var(--surface-hover);
+    }
+
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <img src="logo.png" alt="Megawatt" class="sidebar-logo">
+      <p class="subtitle">Ticket Billing Tool</p>
+
+      <div class="section-label">CSV Files</div>
+      <div id="sourceFiles" class="checkbox-list" style="margin-bottom:1.5rem;">
+        <div style="color:var(--muted);font-size:0.8rem;">Loading...</div>
+      </div>
+
+      <div class="section-label">Filters</div>
+      <div class="filter-group">
+        <label>Date Completed</label>
+        <div style="display:flex;gap:0.4rem;align-items:center;">
+          <input type="date" id="filterDateFrom" style="flex:1;">
+          <span style="color:var(--muted);font-size:0.75rem;">to</span>
+          <input type="date" id="filterDateTo" style="flex:1;">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <div id="statusChecks" class="checkbox-list"></div>
+      </div>
+      <div style="margin-bottom:1.5rem;">
+        <button class="btn btn-outline" id="clearFilters" style="width:100%;font-size:0.75rem;">Clear Filters</button>
+      </div>
+
+      <div class="exports-section">
+        <div class="section-label">Recent Exports</div>
+        <div id="exportsList"></div>
+      </div>
+
+      <div class="debug-section" id="debugSection" style="display:none">
+        <div class="section-label">Debug</div>
+        <div id="debugList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="emptyState" class="empty-state">
+        <div class="icon">📋</div>
+        <h2>Loading ticket data...</h2>
+        <p>Importing all CSV files from the import folder.</p>
+      </div>
+
+      <div id="fileView" style="display:none">
+        <div class="toolbar">
+          <h2>Ticket Data</h2>
+          <span class="badge" id="rowCount"></span>
+          <span class="badge" id="filteredCount" style="display:none;background:var(--accent-light);color:var(--accent);border-color:var(--accent);"></span>
+        </div>
+
+        <div class="tab-bar">
+          <button class="tab active" data-tab="billing">Billing Preview</button>
+          <button class="tab" data-tab="pricing">Pricing Data</button>
+          <button class="tab" data-tab="raw">Raw Data</button>
+        </div>
+
+        <div id="billingTab">
+          <div class="billing-summary" id="billingSummary"></div>
+
+          <div style="margin-bottom: 1rem; text-align: right;">
+            <button class="btn btn-primary" id="exportBillingBtn">Export Billing CSV</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead id="billingHead"></thead>
+              <tbody id="billingBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="pricingTab" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <span class="badge" id="pricingFileLabel">No pricing file</span>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-outline" id="addPricingRow">+ Add Row</button>
+              <button class="btn btn-primary" id="savePricing" disabled>Save Changes</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead id="pricingHead"></thead>
+              <tbody id="pricingBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="rawTab" style="display:none">
+          <div class="column-picker">
+            <div class="picker-zone">
+              <div class="picker-zone-header">
+                <span class="picker-zone-label">Selected Fields <span class="count" id="selectedCount">0</span></span>
+                <div class="column-actions">
+                  <button id="selectAll">Select all</button>
+                  <button id="selectNone">Clear</button>
+                </div>
+              </div>
+              <div class="columns-grid" id="selectedGrid"></div>
+            </div>
+            <hr class="picker-divider">
+            <div class="picker-zone">
+              <span class="picker-zone-label">Available Fields</span>
+              <div class="columns-grid" id="availableGrid" style="margin-top: 0.5rem;"></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1rem; text-align: right;">
+            <button class="btn btn-primary" id="exportBtn" disabled>Export Selected Columns</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="export-modal" id="exportModal">
+    <div class="modal-box">
+      <h3>Export CSV</h3>
+      <p>Export selected columns to the Billing Exports folder.</p>
+      <label for="exportFilename">Filename</label>
+      <input type="text" id="exportFilename" placeholder="billing_export.csv">
+      <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem;">
+        <strong>Columns:</strong> <span id="modalColumns"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="cancelExport">Cancel</button>
+        <button class="btn btn-primary" id="confirmExport">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

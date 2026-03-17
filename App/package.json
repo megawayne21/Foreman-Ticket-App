@@ -1,0 +1,15 @@
+{
+  "name": "foreman-ticket-csv-tool",
+  "version": "1.0.0",
+  "description": "CSV viewer and billing export tool for Foreman ticket data",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.2",
+    "csv-stringify": "^6.4.4",
+    "express": "^4.18.2"
+  }
+}

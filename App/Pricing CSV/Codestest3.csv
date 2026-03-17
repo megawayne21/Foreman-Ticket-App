@@ -1,0 +1,29 @@
+ITEM NO.,UNIT PRICE,ITEM NAME,ITEM DESCRIPTION
+GL1,$0,Miner Inspection & Diagnosis,"General miner health check, reboot, and log inspection."
+GL2,$50,Airbrush Cleaning,"Fans, Control Board, Cable Connections, PSU, and Individual Hash Boards Cleaned"
+GL3,$100,Ultrasonic Cleaning,Fully submerged ultrasonic cleaning for HB repair
+HL1,$25,Fan Replacement,Labor involved in maintaining and replacing miner cooling fans.
+HL2,$15,IO Cable Replacement,Labor involved in maintaining and replacing miner cables
+HL3,$30,PSU Replacement,Labor involved in maintaining and replacing miner power supplies
+HL4,$30,Hahsboad Consolidation,Labor involved in maintaining and replacing miner hashboards
+HL5,$50,CB Programming & installation,"Labor involved in replacing, configuring, and installing control boards"
+HL6,$50,Temp Sensor Replacement,Labor involved in replacing and reprogramming temp sensor chips
+HL7,$50,EEPROM Reprogramming,Labor involved in reprogramming EEPROM chips
+HL8,$100,Repair Facility Shipping Charge,Shipping cost involved in advanced and warrantied repairs
+HL9,$30,Secondary Chip Reprograming,Labor involved in reprogramming PCB chips
+AP1,$25,Miner Fan,(New) OEM Miner Fan Replacement for Aircooled Models
+AP2,$180,Power Supply (PSU),(New) OEM PSU for Specified Model
+AP3,$15,PSU Power Bars,Bus connectors for PSU - Hashboard Power Delivery
+AP4,$200,Previous Gen Advanced Repair,Certfied OEM ASIC/PCB Chip(s) Replacement (2nd Gen Equipment - 24-36W/T)
+AP5,$350,Latest Gen Advanced Repair,Certfied OEM ASIC/PCB Chip(s) Replacement (New Gen Equipment - 13-23 W/T)
+AP6,$100,Miner Control Board,Air-Cooled Miner Control Board (Any Gen)
+AP7,$15,Hashboard IO Cables,Communcaiton Cables between Control board and Hashboards
+AP8,$100,Replacement Hashboard,Pricing varies based on market conditions
+HL11,$250.00,LDO Replacement,Labor involved in reparing or replacing ASIC chips.
+HL12,$300.00,Boost Circuit Replacement,Labor involved in reparing or replacing PCB chips.
+HL13,$160.00,Temperature Sensor Replacement,Labor involved in reparing or replacing ASIC chips.
+HL14,$200,New-Gen replacement Hashboard,
+RT1,$0,Miner Retired,
+Client Inventory,$0,,
+-,$0,,
+None,$0,,
